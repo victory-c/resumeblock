@@ -1,36 +1,149 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ResumeBlock
 
-## Getting Started
+A local-first resume builder that stores experience as modular "blocks", matches them to job descriptions using a local LLM, and compiles them into a LaTeX PDF.
 
-First, run the development server:
+## Requirements
+
+| Dependency | Version | Required |
+|---|---|---|
+| Node.js | ≥ 18.0.0 | Yes |
+| Ollama | latest | Yes (for AI features) |
+| pdflatex / TeX Live | any | Yes (for PDF compilation) |
+
+## Quick Start
+
+### 1. Clone and install
+
+```bash
+git clone <repo-url>
+cd resumeblock
+npm install
+```
+
+`npm install` also runs `prisma generate` automatically (via `postinstall` script).
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` if needed. The defaults work on most machines — just make sure `OLLAMA_MODEL` matches a model you have pulled (see step 4).
+
+### 3. Set up the database
+
+```bash
+npm run db:migrate
+```
+
+This creates `./data/resumeblock.db` and applies all schema migrations.
+
+### 4. Install Ollama (AI features)
+
+Download from [ollama.com](https://ollama.com) or:
+
+```bash
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+Start the server and pull a model:
+
+```bash
+ollama serve          # keep running in a terminal tab
+ollama pull qwen2     # or: llama3.1:8b, mistral, gemma3:4b, etc.
+```
+
+Set `OLLAMA_MODEL=qwen2` (or your model name) in `.env`.
+
+### 5. Install pdflatex (PDF compilation)
+
+```bash
+# macOS — lightweight, no GUI apps
+brew install --cask mactex-no-gui
+
+# Ubuntu / Debian
+sudo apt-get install texlive-latex-base texlive-fonts-recommended texlive-latex-extra
+
+# Windows
+# Install MiKTeX: https://miktex.org/download
+# Or TeX Live: https://tug.org/texlive/
+```
+
+After installing on macOS, open a new terminal (pdflatex will be at `/Library/TeX/texbin/pdflatex`).
+
+### 6. Start the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How it works
 
-## Learn More
+1. **Import** — Upload a PDF resume. The local LLM extracts structured work/education/award entries.
+2. **Block Library** — Each entry becomes a "block". Blocks have "facets" — tailored versions with different bullets and skills for different roles.
+3. **Applications** — Add a job description. The app scores and ranks your facets against the JD's requirements.
+4. **Compile** — Pick a LaTeX template, select blocks, and generate a PDF resume.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## LaTeX Templates
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Upload `.tex` files on the Templates page. Templates use `%%PLACEHOLDER%%` markers:
 
-## Deploy on Vercel
+| Placeholder | Content |
+|---|---|
+| `%%HEADER%%` | Name, email, phone, links |
+| `%%SUMMARY%%` | Professional summary paragraph |
+| `%%EXPERIENCE%%` | Work and volunteer entries |
+| `%%PROJECTS%%` | Project entries |
+| `%%EDUCATION%%` | Education entries |
+| `%%SKILLS%%` | Skills list |
+| `%%CUSTOM:SECTIONNAME%%` | Any custom section |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Templates must use standard document classes (`article`, `report`, etc.) to compile locally. Templates using custom classes (like Deedy Resume's `deedy-resume-reversed`) need their `.cls` file or can be compiled via [Overleaf](https://overleaf.com).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Data storage
+
+All data is local — nothing leaves your machine:
+
+| Path | Contents |
+|---|---|
+| `./data/resumeblock.db` | SQLite database (blocks, facets, JDs, templates) |
+| `./data/output/` | Generated PDF files |
+| `./data/templates/` | Uploaded LaTeX template files |
+| `./data/uploads/` | Temporary PDF uploads |
+
+These directories are in `.gitignore`. To migrate to a new machine, copy the `data/` folder alongside your `.env`.
+
+---
+
+## Migrating to a new machine
+
+```bash
+# On your old machine — pack up your data
+tar -czf resumeblock-data.tar.gz data/ .env
+
+# On the new machine — after clone + npm install + db:migrate:
+tar -xzf resumeblock-data.tar.gz
+```
+
+---
+
+## Commands
+
+```bash
+npm run dev          # Start development server (localhost:3000)
+npm run build        # Production build
+npm run db:migrate   # Apply database migrations
+npm run db:studio    # Open Prisma Studio (visual DB browser)
+```

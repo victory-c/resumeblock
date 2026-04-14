@@ -1,0 +1,85 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=0.5in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{parskip}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+
+% Colors
+\definecolor{headings}{HTML}{333333}
+\definecolor{subheadings}{HTML}{333333}
+\definecolor{date}{HTML}{666666}
+
+% Section formatting - underline rule
+\titleformat{\section}{%
+  \scshape\fontsize{14pt}{16pt}\selectfont\raggedright\color{headings}%
+}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{8pt}{6pt}
+
+% Custom commands
+\newcommand{\runsubsection}[1]{%
+  \fontsize{11pt}{13pt}\selectfont\bfseries\color{subheadings}%
+  \uppercase{#1}%
+  \normalfont\normalsize%
+}
+\newcommand{\descript}[1]{%
+  \fontsize{10pt}{12pt}\selectfont\color{subheadings}%
+  \quad\textsc{#1}%
+  \normalfont\normalsize%
+}
+\newcommand{\location}[1]{%
+  \fontsize{9pt}{11pt}\selectfont\color{date}\itshape #1\normalfont\normalsize%
+}
+\newcommand{\sectionsep}{\vspace{6pt}}
+
+% Compact itemize
+\newenvironment{tightemize}{%
+  \begin{itemize}[leftmargin=*, nosep, topsep=2pt, parsep=1pt, itemsep=1pt]%
+  \fontsize{9.5pt}{11.5pt}\selectfont%
+}{%
+  \end{itemize}%
+}
+
+\begin{document}
+
+% ===== HEADER =====
+\begin{center}
+%%HEADER%%
+\end{center}
+
+\vspace{2pt}
+
+% ===== TWO COLUMN BODY =====
+\noindent
+\begin{minipage}[t]{0.62\textwidth}
+\raggedright
+
+%%EXPERIENCE%%
+
+%%PROJECTS%%
+
+\end{minipage}%
+\hfill%
+\begin{minipage}[t]{0.35\textwidth}
+\raggedright
+
+%%EDUCATION%%
+
+%%SKILLS%%
+
+%%COURSEWORK%%
+
+%%SOCIETIES%%
+
+%%LINKS%%
+
+\end{minipage}
+
+\end{document}

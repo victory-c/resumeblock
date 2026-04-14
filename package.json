@@ -2,25 +2,32 @@
   "name": "resumeblock",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:migrate": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@prisma/client": "^7.4.2",
+    "@prisma/client": "^5.22.0",
     "@types/pdf-parse": "^1.1.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.3.1",
     "lucide-react": "^0.577.0",
     "next": "14.2.35",
-    "pdf-parse": "^2.4.5",
-    "prisma": "^7.4.2",
+    "pdf-parse": "^1.1.1",
+    "prisma": "^5.22.0",
     "react": "^18",
     "react-dom": "^18",
     "react-dropzone": "^15.0.0",
@@ -34,6 +41,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.27",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Block {
+  id           String    @id @default(uuid())
+  title        String
+  organization String
+  location     String?
+  startDate    DateTime
+  endDate      DateTime?
+  type         String    @default("other")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  facets       Facet[]
+}
+
+model Facet {
+  id             String   @id @default(uuid())
+  blockId        String
+  block          Block    @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  targetIndustry String
+  targetRoleType String
+  bulletPoints   String   @default("[]")
+  skills         String   @default("[]")
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Template {
+  id                String           @id @default(uuid())
+  name              String
+  latexSource       String
+  placeholderFormat String           @default("[]")
+  previewImagePath  String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  compiledResumes   CompiledResume[]
+}
+
+model JobDescription {
+  id                 String           @id @default(uuid())
+  companyName        String
+  roleTitle          String
+  rawText            String
+  parsedRequirements String           @default("{}")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  compiledResumes    CompiledResume[]
+}
+
+model CompiledResume {
+  id                 String         @id @default(uuid())
+  jobDescriptionId   String
+  jobDescription     JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+  templateId         String
+  template           Template       @relation(fields: [templateId], references: [id])
+  selectedFacetIds   String         @default("[]")
+  additionalSections String         @default("{}")
+  compiledLatex      String
+  pdfPath            String?
+  status             String         @default("draft")
+  errorLog           String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
