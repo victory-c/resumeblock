@@ -11,10 +11,11 @@ function parseFacets(facets: { bulletPoints: string; skills: string; [key: strin
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const block = await prisma.block.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { facets: { orderBy: { createdAt: "asc" } } },
   })
   if (!block) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -24,8 +25,9 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   let body: Record<string, unknown>
   try { body = await req.json() } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }) }
 
@@ -37,14 +39,15 @@ export async function PUT(
   if (body.location !== undefined) data.location = body.location ? (body.location as string).trim() : null
   if (body.type !== undefined) data.type = body.type
 
-  const block = await prisma.block.update({ where: { id: params.id }, data })
+  const block = await prisma.block.update({ where: { id }, data })
   return NextResponse.json({ block })
 }
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await prisma.block.delete({ where: { id: params.id } })
+  const { id } = await params
+  await prisma.block.delete({ where: { id } })
   return NextResponse.json({ deleted: true })
 }

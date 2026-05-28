@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma"
 import { BlockLibraryClient } from "@/components/blocks/BlockLibraryClient"
 
+export const dynamic = "force-dynamic"
+
 export default async function BlocksPage() {
   const blocks = await prisma.block.findMany({
     orderBy: { startDate: "desc" },

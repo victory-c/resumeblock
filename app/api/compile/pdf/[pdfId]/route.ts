@@ -4,12 +4,13 @@ import path from "path"
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { pdfId: string } }
+  { params }: { params: Promise<{ pdfId: string }> }
 ) {
+  const { pdfId } = await params
   const pdfPath = path.join(
     process.cwd(),
     process.env.OUTPUT_DIR || "./data/output",
-    `${params.pdfId}.pdf`
+    `${pdfId}.pdf`
   )
 
   if (!fs.existsSync(pdfPath)) {
