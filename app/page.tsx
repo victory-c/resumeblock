@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Briefcase, Upload, FileText, ArrowRight } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 async function getStats() {
   const [blockCount, jdCount, resumeCount] = await Promise.all([
     prisma.block.count(),

@@ -40,9 +40,12 @@ export function OllamaStatusIndicator() {
   }
 
   useEffect(() => {
-    poll()
+    const timeoutId = setTimeout(poll, 0)
     const id = setInterval(poll, 30_000)
-    return () => clearInterval(id)
+    return () => {
+      clearTimeout(timeoutId)
+      clearInterval(id)
+    }
   }, [])
 
   const { label, dotClass } = STATUS_CONFIG[status]

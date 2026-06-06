@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma"
 import { CompileClient } from "@/components/compiler/CompileClient"
 import { ArrowLeft } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 interface SearchParams {
   jdId?: string
   facets?: string
@@ -13,10 +15,11 @@ interface SearchParams {
 export default async function CompileNewPage({
   searchParams,
 }: {
-  searchParams: SearchParams
+  searchParams: Promise<SearchParams>
 }) {
-  const facetIds = searchParams.facets
-    ? searchParams.facets.split(",").filter(Boolean)
+  const resolvedSearchParams = await searchParams
+  const facetIds = resolvedSearchParams.facets
+    ? resolvedSearchParams.facets.split(",").filter(Boolean)
     : []
 
   if (facetIds.length === 0) {
@@ -36,9 +39,9 @@ export default async function CompileNewPage({
   })
 
   let jdInfo: { companyName: string; roleTitle: string } | null = null
-  if (searchParams.jdId) {
+  if (resolvedSearchParams.jdId) {
     const jd = await prisma.jobDescription.findUnique({
-      where: { id: searchParams.jdId },
+      where: { id: resolvedSearchParams.jdId },
       select: { companyName: true, roleTitle: true },
     })
     jdInfo = jd
@@ -48,7 +51,7 @@ export default async function CompileNewPage({
     <div className="p-8">
       <div className="mb-6">
         <Link
-          href={searchParams.jdId ? `/applications/${searchParams.jdId}` : "/applications"}
+          href={resolvedSearchParams.jdId ? `/applications/${resolvedSearchParams.jdId}` : "/applications"}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back
@@ -69,7 +72,7 @@ export default async function CompileNewPage({
       <CompileClient
         templates={templates}
         facetIds={facetIds}
-        jdId={searchParams.jdId}
+        jdId={resolvedSearchParams.jdId}
       />
     </div>
   )

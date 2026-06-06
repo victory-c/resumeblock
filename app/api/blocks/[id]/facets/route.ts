@@ -3,8 +3,9 @@ import prisma from "@/lib/prisma"
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   let body: {
     targetIndustry: string
     targetRoleType: string
@@ -16,14 +17,14 @@ export async function POST(
 
   if (body.isDefault) {
     await prisma.facet.updateMany({
-      where: { blockId: params.id },
+      where: { blockId: id },
       data: { isDefault: false },
     })
   }
 
   const facet = await prisma.facet.create({
     data: {
-      blockId: params.id,
+      blockId: id,
       targetIndustry: body.targetIndustry,
       targetRoleType: body.targetRoleType,
       bulletPoints: JSON.stringify(body.bulletPoints || []),

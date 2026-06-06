@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CompileSummaryAI } from "./CompileSummaryAI"
@@ -33,7 +34,7 @@ function loadHeader(): HeaderInfo {
 
 export function CompileConfigForm({ templates, facetIds, jdId, onSubmit, loading }: CompileConfigFormProps) {
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? "")
-  const [header, setHeader] = useState<HeaderInfo>({ name: "", email: "" })
+  const [header, setHeader] = useState<HeaderInfo>(() => loadHeader())
   const [summary, setSummary] = useState("")
   const [skillsInput, setSkillsInput] = useState("")
   const [useSkillCategories, setUseSkillCategories] = useState(false)
@@ -43,10 +44,6 @@ export function CompileConfigForm({ templates, facetIds, jdId, onSubmit, loading
   ])
   const [coursework, setCoursework] = useState("")
   const [societies, setSocieties] = useState("")
-
-  useEffect(() => {
-    setHeader(loadHeader())
-  }, [])
 
   function updateHeader(field: keyof HeaderInfo, value: string) {
     const next = { ...header, [field]: value }
@@ -93,7 +90,7 @@ export function CompileConfigForm({ templates, facetIds, jdId, onSubmit, loading
         {templates.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No templates available.{" "}
-            <a href="/templates" className="text-primary underline">Upload one first</a>
+            <Link href="/templates" className="text-primary underline">Upload one first</Link>
           </p>
         ) : (
           <select
