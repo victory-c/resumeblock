@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { enforceLocalCompileRequest, readLimitedJson } from "@/lib/compile-security"
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalCompileRequest(req)
+  if (localOnlyError) return localOnlyError
+
   let body: {
     jobDescriptionId: string
     templateId: string
@@ -12,11 +16,9 @@ export async function POST(req: NextRequest) {
     status?: string
     errorLog?: string
   }
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
-  }
+  const parsedBody = await readLimitedJson(req)
+  if (parsedBody.response) return parsedBody.response
+  body = parsedBody.body as typeof body
 
   const compiled = await prisma.compiledResume.create({
     data: {

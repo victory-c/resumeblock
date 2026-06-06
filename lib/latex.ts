@@ -16,6 +16,26 @@ export function escapeLatex(text: string): string {
     .replace(/\^/g, "\\textasciicircum{}")
 }
 
+export {
+  LatexHrefValidationError,
+  validateAdditionalSectionsLatexHrefs,
+  validateLatexHttpHref,
+  validateLatexMailtoHref,
+} from "./latex-href"
+
+import {
+  validateLatexHttpHref,
+  validateLatexMailtoHref,
+} from "./latex-href"
+
+export function renderLatexHref(rawUrl: string, label: string, field = "url"): string {
+  return `\\href{${validateLatexHttpHref(rawUrl, field)}}{${escapeLatex(label)}}`
+}
+
+export function renderLatexMailtoHref(email: string, label = email, field = "email"): string {
+  return `\\href{${validateLatexMailtoHref(email, field)}}{${escapeLatex(label)}}`
+}
+
 /**
  * Format an array of bullet point strings into a LaTeX itemize environment.
  */
