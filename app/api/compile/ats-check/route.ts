@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { enforceLocalCompileRequest, readLimitedJson } from "@/lib/compile-security"
 import type { JDAnalysis } from "@/types"
 
 function stripLatex(latex: string): string {
@@ -23,12 +24,13 @@ function detectWarnings(latex: string): string[] {
 }
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalCompileRequest(req)
+  if (localOnlyError) return localOnlyError
+
   let body: { compiledLatex: string; jobDescriptionId: string }
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
-  }
+  const parsedBody = await readLimitedJson(req)
+  if (parsedBody.response) return parsedBody.response
+  body = parsedBody.body as typeof body
 
   const jd = await prisma.jobDescription.findUnique({ where: { id: body.jobDescriptionId } })
   if (!jd) return NextResponse.json({ error: "JD not found" }, { status: 404 })
