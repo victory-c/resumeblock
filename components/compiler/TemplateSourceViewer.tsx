@@ -17,7 +17,17 @@ export function TemplateSourceViewer({ latexSource, placeholders }: TemplateSour
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const highlighted = latexSource.replace(
+  // Escape HTML before injecting via dangerouslySetInnerHTML so uploaded LaTeX
+  // source can't execute (stored XSS). The %%PLACEHOLDER%% token only uses
+  // [A-Z0-9_:], so escaping leaves it intact and the highlight regex still matches.
+  const escaped = latexSource
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+
+  const highlighted = escaped.replace(
     /%%([A-Z0-9_:]+)%%/g,
     '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">%%$1%%</mark>'
   )
