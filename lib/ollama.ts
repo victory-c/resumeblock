@@ -68,7 +68,7 @@ export async function generateStream(
 
 export function parseJSONResponse<T>(raw: string): T | null {
   // Strip markdown code fences
-  let text = raw
+  const text = raw
     .replace(/^```(?:json)?\s*/im, "")
     .replace(/\s*```\s*$/m, "")
     .trim()

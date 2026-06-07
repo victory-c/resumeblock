@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma"
 import { Button } from "@/components/ui/button"
 import { Plus, Briefcase } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 export default async function ApplicationsPage() {
   const jds = await prisma.jobDescription.findMany({
     orderBy: { createdAt: "desc" },

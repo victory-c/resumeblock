@@ -3,17 +3,18 @@ import prisma from "@/lib/prisma"
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   let body: Record<string, unknown>
   try { body = await req.json() } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }) }
 
-  const facet = await prisma.facet.findUnique({ where: { id: params.id } })
+  const facet = await prisma.facet.findUnique({ where: { id } })
   if (!facet) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   if (body.isDefault === true) {
     await prisma.facet.updateMany({
-      where: { blockId: facet.blockId, id: { not: params.id } },
+      where: { blockId: facet.blockId, id: { not: id } },
       data: { isDefault: false },
     })
   }
@@ -25,7 +26,7 @@ export async function PUT(
   if (body.skills !== undefined) data.skills = JSON.stringify(body.skills)
   if (body.isDefault !== undefined) data.isDefault = body.isDefault
 
-  const updated = await prisma.facet.update({ where: { id: params.id }, data })
+  const updated = await prisma.facet.update({ where: { id }, data })
   return NextResponse.json({
     facet: {
       ...updated,
@@ -37,9 +38,10 @@ export async function PUT(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const facet = await prisma.facet.findUnique({ where: { id: params.id } })
+  const { id } = await params
+  const facet = await prisma.facet.findUnique({ where: { id } })
   if (!facet) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const count = await prisma.facet.count({ where: { blockId: facet.blockId } })
@@ -50,6 +52,6 @@ export async function DELETE(
     )
   }
 
-  await prisma.facet.delete({ where: { id: params.id } })
+  await prisma.facet.delete({ where: { id } })
   return NextResponse.json({ deleted: true })
 }

@@ -5,6 +5,8 @@ import { RecommendationClient } from "@/components/jd/RecommendationClient"
 import type { JDAnalysis, FacetMatchResult, CoverageReport } from "@/types"
 import { ArrowLeft } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 // Inline matching logic to avoid HTTP self-calls in server components
 async function getRecommendations(jdId: string, analysis: JDAnalysis) {
   const blocks = await prisma.block.findMany({ include: { facets: true } })
@@ -66,8 +68,9 @@ async function getRecommendations(jdId: string, analysis: JDAnalysis) {
   return { recommendations, coverageReport }
 }
 
-export default async function ApplicationPage({ params }: { params: { id: string } }) {
-  const jd = await prisma.jobDescription.findUnique({ where: { id: params.id } })
+export default async function ApplicationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const jd = await prisma.jobDescription.findUnique({ where: { id } })
   if (!jd) notFound()
 
   let analysis: JDAnalysis | null = null

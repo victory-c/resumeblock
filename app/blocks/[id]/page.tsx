@@ -5,9 +5,12 @@ import { BlockDetailClient } from "@/components/blocks/BlockDetailClient"
 import type { ParsedFacet, BlockWithParsedFacets } from "@/types"
 import { ArrowLeft } from "lucide-react"
 
-export default async function BlockDetailPage({ params }: { params: { id: string } }) {
+export const dynamic = "force-dynamic"
+
+export default async function BlockDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const block = await prisma.block.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { facets: { orderBy: { createdAt: "asc" } } },
   })
 

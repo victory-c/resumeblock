@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { escapeLatex, formatBulletPoints, formatBulletPointsDeedy, formatDateRange, injectPlaceholder } from "@/lib/latex"
+import {
+  escapeLatex,
+  formatBulletPoints,
+  formatBulletPointsDeedy,
+  formatDateRange,
+  injectPlaceholder,
+  renderLatexHref,
+  renderLatexMailtoHref,
+  validateAdditionalSectionsLatexHrefs,
+  validateLatexHttpHref,
+} from "@/lib/latex"
+import {
+  enforceLocalCompileRequest,
+  readLimitedJson,
+  tryAcquireCompileSlot,
+} from "@/lib/compile-security"
 import type { AdditionalSections, SkillCategory } from "@/types"
 import fs from "fs"
 import path from "path"
-import { execSync } from "child_process"
+import { spawn } from "child_process"
 import { randomUUID } from "crypto"
 
 // ---------- Standard template builders ----------
@@ -21,11 +36,11 @@ ${bullets}`
 function buildHeader(header: AdditionalSections["header"]): string {
   const lines = [
     `\\textbf{\\Large ${escapeLatex(header.name)}}\\\\`,
-    header.email ? `\\href{mailto:${header.email}}{${escapeLatex(header.email)}}` : "",
+    header.email ? renderLatexMailtoHref(header.email, header.email, "additionalSections.header.email") : "",
     header.phone ? escapeLatex(header.phone) : "",
-    header.linkedin ? `\\href{${header.linkedin}}{LinkedIn}` : "",
-    header.github ? `\\href{${header.github}}{GitHub}` : "",
-    header.portfolio ? `\\href{${header.portfolio}}{Portfolio}` : "",
+    header.linkedin ? renderLatexHref(header.linkedin, "LinkedIn", "additionalSections.header.linkedin") : "",
+    header.github ? renderLatexHref(header.github, "GitHub", "additionalSections.header.github") : "",
+    header.portfolio ? renderLatexHref(header.portfolio, "Portfolio", "additionalSections.header.portfolio") : "",
   ].filter(Boolean)
   return lines.join(" $|$ ")
 }
@@ -49,7 +64,7 @@ ${bullets}
 
 function buildHeaderDeedy(header: AdditionalSections["header"]): string {
   const contact = [
-    header.email ? `\\href{mailto:${header.email}}{${escapeLatex(header.email)}}` : "",
+    header.email ? renderLatexMailtoHref(header.email, header.email, "additionalSections.header.email") : "",
     header.phone ? escapeLatex(header.phone) : "",
   ].filter(Boolean).join(" | ")
   return `{\\fontsize{28pt}{34pt}\\selectfont\\textbf{${escapeLatex(header.name)}}}\\\\
@@ -80,16 +95,19 @@ function buildSocieties(societies: string[]): string {
 function buildLinks(header: AdditionalSections["header"]): string {
   const links: string[] = []
   if (header.github) {
-    const username = header.github.replace(/^https?:\/\/(www\.)?github\.com\/?/, "").replace(/\/$/, "") || header.github
-    links.push(`Github:// \\href{${header.github}}{\\textbf{${escapeLatex(username)}}}`)
+    const href = validateLatexHttpHref(header.github, "additionalSections.header.github")
+    const username = href.replace(/^https?:\/\/(www\.)?github\.com\/?/, "").replace(/\/$/, "") || href
+    links.push(`Github:// \\href{${href}}{\\textbf{${escapeLatex(username)}}}`)
   }
   if (header.linkedin) {
-    const username = header.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\/?/, "").replace(/\/$/, "") || header.linkedin
-    links.push(`LinkedIn:// \\href{${header.linkedin}}{\\textbf{${escapeLatex(username)}}}`)
+    const href = validateLatexHttpHref(header.linkedin, "additionalSections.header.linkedin")
+    const username = href.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\/?/, "").replace(/\/$/, "") || href
+    links.push(`LinkedIn:// \\href{${href}}{\\textbf{${escapeLatex(username)}}}`)
   }
   if (header.portfolio) {
-    const display = header.portfolio.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")
-    links.push(`Portfolio:// \\href{${header.portfolio}}{\\textbf{${escapeLatex(display)}}}`)
+    const href = validateLatexHttpHref(header.portfolio, "additionalSections.header.portfolio")
+    const display = href.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")
+    links.push(`Portfolio:// \\href{${href}}{\\textbf{${escapeLatex(display)}}}`)
   }
   if (links.length === 0) return ""
   return links.join(" \\\\\n")
@@ -101,11 +119,72 @@ function isDeedy(latexSource: string): boolean {
   return latexSource.includes("%%LINKS%%") || latexSource.includes("%%COURSEWORK%%") || latexSource.includes("%%SOCIETIES%%")
 }
 
+async function runPdfLatex(pdflatexBin: string, tmpDir: string, texPath: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn(
+      pdflatexBin,
+      [
+        "-interaction=nonstopmode",
+        "-no-shell-escape",
+        `-output-directory=${tmpDir}`,
+        texPath,
+      ],
+      {
+        stdio: "pipe",
+        env: {
+          ...process.env,
+          openin_any: "p",
+          openout_any: "p",
+        },
+      }
+    )
+
+    let settled = false
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      proc.kill("SIGKILL")
+      reject(new Error("pdflatex timed out"))
+    }, 30000)
+
+    proc.on("error", (error) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      reject(error)
+    })
+
+    proc.on("close", (exitCode) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      if (exitCode === 0) {
+        resolve()
+      } else {
+        reject(new Error(`pdflatex exited with code ${exitCode}`))
+      }
+    })
+  })
+}
+
 // ---------- Main handler ----------
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalCompileRequest(req)
+  if (localOnlyError) return localOnlyError
+
   let body: { templateId: string; facetIds: string[]; additionalSections: AdditionalSections; jobDescriptionId?: string }
-  try { body = await req.json() } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }) }
+  const parsedBody = await readLimitedJson(req)
+  if (parsedBody.response) return parsedBody.response
+  body = parsedBody.body as typeof body
+
+  const hrefErrors = validateAdditionalSectionsLatexHrefs(body.additionalSections)
+  if (hrefErrors.length > 0) {
+    return NextResponse.json(
+      { error: "Invalid link URL", fields: hrefErrors },
+      { status: 400 }
+    )
+  }
 
   const template = await prisma.template.findUnique({ where: { id: body.templateId } })
   if (!template) return NextResponse.json({ error: "Template not found" }, { status: 404 })
@@ -204,11 +283,14 @@ export async function POST(req: NextRequest) {
   ]
   const pdflatexBin = knownPaths.find((p) => { try { return fs.existsSync(p) } catch { return false } }) ?? "pdflatex"
 
+  const releaseCompileSlot = tryAcquireCompileSlot()
+  if (!releaseCompileSlot) {
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch { /* ignore */ }
+    return NextResponse.json({ error: "Too many compile requests" }, { status: 429 })
+  }
+
   try {
-    execSync(`"${pdflatexBin}" -interaction=nonstopmode -output-directory="${tmpDir}" "${texPath}"`, {
-      timeout: 30000,
-      stdio: "pipe",
-    })
+    await runPdfLatex(pdflatexBin, tmpDir, texPath)
   } catch (e) {
     const logPath = path.join(tmpDir, "resume.log")
     let errorLog = "Compilation failed"
@@ -224,6 +306,8 @@ export async function POST(req: NextRequest) {
     }
     try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch { /* ignore */ }
     return NextResponse.json({ status: "error", errorLog, problemLine, compiledLatex: latex })
+  } finally {
+    releaseCompileSlot()
   }
 
   const pdfSrc = path.join(tmpDir, "resume.pdf")
