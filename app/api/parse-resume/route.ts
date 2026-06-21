@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkOllamaStatus, generate, parseJSONResponse } from "@/lib/ollama"
 import { getParseResumePrompt } from "@/lib/prompts/parse-resume"
+import { enforceLocalRequest } from "@/lib/compile-security"
 import type { ParsedResumeEntry } from "@/types"
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
+
   let file: File | null = null
 
   try {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { enforceLocalRequest } from "@/lib/compile-security"
 import type { ParsedResumeEntry } from "@/types"
 
 type ImportEntry = ParsedResumeEntry & {
@@ -14,6 +15,9 @@ function parseDate(dateStr: string | null | undefined): Date | null {
 }
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
+
   let entries: ImportEntry[]
   let languages: string[] = []
   try {
