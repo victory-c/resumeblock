@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { detectPlaceholders } from "@/lib/latex"
+import { enforceLocalRequest } from "@/lib/compile-security"
 import fs from "fs"
 import path from "path"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
+
   const templates = await prisma.template.findMany({
     orderBy: { createdAt: "desc" },
     select: { id: true, name: true, placeholderFormat: true, previewImagePath: true, createdAt: true, updatedAt: true },
@@ -13,6 +17,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
+
   let name: string
   let latexSource: string
 
