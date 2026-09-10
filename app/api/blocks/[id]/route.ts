@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { enforceLocalRequest } from "@/lib/compile-security"
 
 function parseFacets(facets: { bulletPoints: string; skills: string; [key: string]: unknown }[]) {
   return facets.map((f) => ({
@@ -10,9 +11,11 @@ function parseFacets(facets: { bulletPoints: string; skills: string; [key: strin
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
   const { id } = await params
   const block = await prisma.block.findUnique({
     where: { id },
@@ -27,6 +30,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
   const { id } = await params
   let body: Record<string, unknown>
   try { body = await req.json() } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }) }
@@ -44,9 +49,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
   const { id } = await params
   await prisma.block.delete({ where: { id } })
   return NextResponse.json({ deleted: true })

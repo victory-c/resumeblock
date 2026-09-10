@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import type { Prisma } from "@prisma/client"
+import { enforceLocalRequest } from "@/lib/compile-security"
 
 export async function GET(req: NextRequest) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
   const { searchParams } = new URL(req.url)
   const type = searchParams.get("type")
   const search = searchParams.get("search")
@@ -34,6 +37,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
   let body: { title: string; organization: string; location?: string; startDate: string; endDate?: string; type: string }
   try {
     body = await req.json()

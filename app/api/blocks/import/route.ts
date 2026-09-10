@@ -37,65 +37,46 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let blockCount = 0
-  let facetCount = 0
-  const blockIds: string[] = []
+  const blockIds = await prisma.$transaction(async (tx) => {
+    const createdIds: string[] = []
+    for (const entry of entries) {
+      const block = await tx.block.create({
+        data: {
+          title: entry.title.trim(),
+          organization: entry.organization.trim(),
+          location: entry.location?.trim() || null,
+          startDate: parseDate(entry.startDate) || new Date(),
+          endDate: parseDate(entry.endDate),
+          type: entry.type || "other",
+        },
+      })
+      createdIds.push(block.id)
+      await tx.facet.create({
+        data: {
+          blockId: block.id,
+          targetIndustry: entry.targetIndustry?.trim() || "General",
+          targetRoleType: entry.targetRoleType?.trim() || "General",
+          bulletPoints: JSON.stringify(entry.bulletPoints || []),
+          skills: JSON.stringify([]),
+          isDefault: true,
+        },
+      })
+    }
 
-  for (const entry of entries) {
-    const startDate = parseDate(entry.startDate) || new Date()
-    const endDate = parseDate(entry.endDate)
+    if (languages.length > 0) {
+      const langBlock = await tx.block.create({
+        data: { title: "Languages", organization: "Personal", startDate: new Date(), endDate: null, type: "other" },
+      })
+      createdIds.push(langBlock.id)
+      await tx.facet.create({
+        data: {
+          blockId: langBlock.id, targetIndustry: "General", targetRoleType: "General",
+          bulletPoints: JSON.stringify(languages), skills: JSON.stringify(languages), isDefault: true,
+        },
+      })
+    }
+    return createdIds
+  })
 
-    const block = await prisma.block.create({
-      data: {
-        title: entry.title.trim(),
-        organization: entry.organization.trim(),
-        location: entry.location?.trim() || null,
-        startDate,
-        endDate,
-        type: entry.type || "other",
-      },
-    })
-    blockCount++
-    blockIds.push(block.id)
-
-    await prisma.facet.create({
-      data: {
-        blockId: block.id,
-        targetIndustry: entry.targetIndustry?.trim() || "General",
-        targetRoleType: entry.targetRoleType?.trim() || "General",
-        bulletPoints: JSON.stringify(entry.bulletPoints || []),
-        skills: JSON.stringify([]),
-        isDefault: true,
-      },
-    })
-    facetCount++
-  }
-
-  // Store languages as a single "Languages" block with type "other"
-  if (languages.length > 0) {
-    const langBlock = await prisma.block.create({
-      data: {
-        title: "Languages",
-        organization: "Personal",
-        startDate: new Date(),
-        endDate: null,
-        type: "other",
-      },
-    })
-    blockIds.push(langBlock.id)
-    blockCount++
-    await prisma.facet.create({
-      data: {
-        blockId: langBlock.id,
-        targetIndustry: "General",
-        targetRoleType: "General",
-        bulletPoints: JSON.stringify(languages),
-        skills: JSON.stringify(languages),
-        isDefault: true,
-      },
-    })
-    facetCount++
-  }
-
-  return NextResponse.json({ created: { blocks: blockCount, facets: facetCount }, blockIds })
+  return NextResponse.json({ created: { blocks: blockIds.length, facets: blockIds.length }, blockIds })
 }

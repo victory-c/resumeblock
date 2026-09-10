@@ -3,8 +3,11 @@ import prisma from "@/lib/prisma"
 import { checkOllamaStatus, generate, parseJSONResponse } from "@/lib/ollama"
 import { getAnalyzeJDPrompt } from "@/lib/prompts/analyze-jd"
 import type { JDAnalysis } from "@/types"
+import { enforceLocalRequest } from "@/lib/compile-security"
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
   let body: { rawText: string; companyName?: string; roleTitle?: string }
   try { body = await req.json() } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }) }
 

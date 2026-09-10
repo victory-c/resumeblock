@@ -6,8 +6,10 @@ export async function POST(req: NextRequest) {
   const localOnlyError = enforceLocalCompileRequest(req)
   if (localOnlyError) return localOnlyError
 
-  let body: {
-    jobDescriptionId: string
+  const parsedBody = await readLimitedJson(req)
+  if (parsedBody.response) return parsedBody.response
+  const body = parsedBody.body as {
+    jobDescriptionId?: string
     templateId: string
     selectedFacetIds: string[]
     additionalSections: Record<string, unknown>
@@ -16,13 +18,10 @@ export async function POST(req: NextRequest) {
     status?: string
     errorLog?: string
   }
-  const parsedBody = await readLimitedJson(req)
-  if (parsedBody.response) return parsedBody.response
-  body = parsedBody.body as typeof body
 
   const compiled = await prisma.compiledResume.create({
     data: {
-      jobDescriptionId: body.jobDescriptionId,
+      ...(body.jobDescriptionId?.trim() ? { jobDescriptionId: body.jobDescriptionId.trim() } : {}),
       templateId: body.templateId,
       selectedFacetIds: JSON.stringify(body.selectedFacetIds),
       additionalSections: JSON.stringify(body.additionalSections),

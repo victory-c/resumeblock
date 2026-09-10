@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { checkOllamaStatus, generate, parseJSONResponse } from "@/lib/ollama"
 import { getGenerateFacetPrompt } from "@/lib/prompts/generate-facet"
+import { enforceLocalRequest } from "@/lib/compile-security"
 
 export async function POST(req: NextRequest) {
+  const localOnlyError = enforceLocalRequest(req)
+  if (localOnlyError) return localOnlyError
   let body: { blockId: string; targetIndustry: string; targetRoleType: string }
   try { body = await req.json() } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }) }
 

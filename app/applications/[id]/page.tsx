@@ -63,7 +63,11 @@ async function getRecommendations(jdId: string, analysis: JDAnalysis) {
     else gaps.push(skill)
   }
 
-  const recommendations: FacetMatchResult[] = top.map(({ skills: _s, ...r }) => r)
+  const recommendations: FacetMatchResult[] = top.map((item) => {
+    const { skills, ...result } = item
+    void skills
+    return result
+  })
   const coverageReport: CoverageReport = { covered, gaps }
   return { recommendations, coverageReport }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkOllamaStatus, generate, parseJSONResponse } from "@/lib/ollama"
 import { getParseResumePrompt } from "@/lib/prompts/parse-resume"
-import { enforceLocalRequest } from "@/lib/compile-security"
+import { enforceLocalRequest, MAX_RESUME_PDF_BYTES } from "@/lib/compile-security"
 import type { ParsedResumeEntry } from "@/types"
 
 export async function POST(req: NextRequest) {
@@ -28,10 +28,16 @@ export async function POST(req: NextRequest) {
   if (!isPdf) {
     return NextResponse.json({ status: "error", message: "File must be a PDF" }, { status: 400 })
   }
+  if (file.size > MAX_RESUME_PDF_BYTES) {
+    return NextResponse.json({ status: "error", message: "PDF must be smaller than 10 MB" }, { status: 413 })
+  }
 
   // Read buffer
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
+  if (buffer.subarray(0, 5).toString() !== "%PDF-") {
+    return NextResponse.json({ status: "error", message: "File contents are not a PDF" }, { status: 400 })
+  }
 
   // Extract text with pdf-parse
   // Use the internal lib directly to bypass the debug code in index.js

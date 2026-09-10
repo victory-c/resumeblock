@@ -1,4 +1,4 @@
-import type { JDAnalysis, FacetMatchResult } from "@/types"
+import type { JDAnalysis } from "@/types"
 
 export function getMatchFacetsPrompt(
   jdAnalysis: JDAnalysis,

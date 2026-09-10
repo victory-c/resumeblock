@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation"
 import Link from "next/link"
 import prisma from "@/lib/prisma"
 import { CompileClient } from "@/components/compiler/CompileClient"
