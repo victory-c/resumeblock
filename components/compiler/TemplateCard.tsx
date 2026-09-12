@@ -33,7 +33,7 @@ export function TemplateCard({ template, onDelete }: TemplateCardProps) {
         <div>
           <h3 className="font-semibold text-sm">{template.name}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {new Date(template.createdAt).toLocaleDateString()}
+            {new Date(template.createdAt).toLocaleDateString("en-US", { timeZone: "UTC" })}
           </p>
         </div>
         <button

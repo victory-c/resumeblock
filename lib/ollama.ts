@@ -10,7 +10,7 @@ export async function checkOllamaStatus(): Promise<OllamaStatus> {
     const data = await res.json()
     const models: string[] = (data.models || []).map((m: { name: string }) => m.name)
     if (models.length === 0) return "loading"
-    return "ready"
+    return models.includes(MODEL) ? "ready" : "loading"
   } catch {
     return "offline"
   }
@@ -32,6 +32,7 @@ export async function generate(prompt: string): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model: MODEL, prompt, stream: false }),
+    signal: AbortSignal.timeout(60_000),
   })
   if (!res.ok) throw new Error(`Ollama generate failed: ${res.status}`)
   const data = await res.json()
@@ -46,6 +47,7 @@ export async function generateStream(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model: MODEL, prompt, stream: true }),
+    signal: AbortSignal.timeout(60_000),
   })
   if (!res.ok) throw new Error(`Ollama stream failed: ${res.status}`)
   const reader = res.body?.getReader()

@@ -173,10 +173,9 @@ export async function POST(req: NextRequest) {
   const localOnlyError = enforceLocalCompileRequest(req)
   if (localOnlyError) return localOnlyError
 
-  let body: { templateId: string; facetIds: string[]; additionalSections: AdditionalSections; jobDescriptionId?: string }
   const parsedBody = await readLimitedJson(req)
   if (parsedBody.response) return parsedBody.response
-  body = parsedBody.body as typeof body
+  const body = parsedBody.body as { templateId: string; facetIds: string[]; additionalSections: AdditionalSections; jobDescriptionId?: string }
 
   const hrefErrors = validateAdditionalSectionsLatexHrefs(body.additionalSections)
   if (hrefErrors.length > 0) {

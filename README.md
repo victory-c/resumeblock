@@ -6,7 +6,7 @@ A local-first resume builder that stores experience as modular "blocks", matches
 
 | Dependency | Version | Required |
 |---|---|---|
-| Node.js | ≥ 18.0.0 | Yes |
+| Node.js | ≥ 20.9.0 | Yes |
 | Ollama | latest | Yes (for AI features) |
 | pdflatex / TeX Live | any | Yes (for PDF compilation) |
 
@@ -36,7 +36,7 @@ Edit `.env` if needed. The defaults work on most machines — just make sure `OL
 npm run db:migrate
 ```
 
-This creates `./data/resumeblock.db` and applies all schema migrations.
+This creates `./data/resumeblock.db`, applies all schema migrations, and seeds the two bundled templates.
 
 ### 4. Install Ollama (AI features)
 
@@ -81,7 +81,7 @@ After installing on macOS, open a new terminal (pdflatex will be at `/Library/Te
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). The server deliberately listens only on `127.0.0.1`, so your resume data and local Ollama endpoint are not exposed to your network.
 
 ---
 
@@ -114,7 +114,7 @@ Templates must use standard document classes (`article`, `report`, etc.) to comp
 
 ## Data storage
 
-All data is local — nothing leaves your machine:
+All data is local — nothing leaves your machine. The app and its API listen only on localhost, and uploaded templates reject direct file-access primitives before LaTeX compilation:
 
 | Path | Contents |
 |---|---|

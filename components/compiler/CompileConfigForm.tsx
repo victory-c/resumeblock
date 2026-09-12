@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CompileSummaryAI } from "./CompileSummaryAI"
@@ -44,11 +44,45 @@ export function CompileConfigForm({ templates, facetIds, jdId, onSubmit, loading
   ])
   const [coursework, setCoursework] = useState("")
   const [societies, setSocieties] = useState("")
+  const [profileStatus, setProfileStatus] = useState("")
+
+  useEffect(() => {
+    let active = true
+    fetch("/api/profile")
+      .then((res) => res.ok ? res.json() : null)
+      .then((payload) => {
+        if (!active || !payload?.data) return
+        const saved = payload.data
+        if (saved.header && typeof saved.header === "object") setHeader(saved.header as HeaderInfo)
+        if (typeof saved.summary === "string") setSummary(saved.summary)
+        if (typeof saved.skillsInput === "string") setSkillsInput(saved.skillsInput)
+        if (typeof saved.useSkillCategories === "boolean") setUseSkillCategories(saved.useSkillCategories)
+        if (Array.isArray(saved.skillCategories)) setSkillCategories(saved.skillCategories as SkillCategory[])
+        if (typeof saved.coursework === "string") setCoursework(saved.coursework)
+        if (typeof saved.societies === "string") setSocieties(saved.societies)
+      })
+      .catch(() => undefined)
+    return () => { active = false }
+  }, [])
 
   function updateHeader(field: keyof HeaderInfo, value: string) {
     const next = { ...header, [field]: value }
     setHeader(next)
     localStorage.setItem(HEADER_KEY, JSON.stringify(next))
+  }
+
+  async function saveProfile() {
+    setProfileStatus("Saving…")
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ header, summary, skillsInput, useSkillCategories, skillCategories, coursework, societies }),
+      })
+      setProfileStatus(res.ok ? "Saved" : "Could not save")
+    } catch {
+      setProfileStatus("Could not save")
+    }
   }
 
   function updateCategory(index: number, field: keyof SkillCategory, value: string | string[]) {
@@ -106,7 +140,12 @@ export function CompileConfigForm({ templates, facetIds, jdId, onSubmit, loading
       </div>
 
       <div className="space-y-4 p-4 border rounded-lg">
-        <h3 className="text-sm font-semibold">Header Information</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Header Information</h3>
+          <button type="button" onClick={saveProfile} className="text-xs text-muted-foreground hover:text-foreground">
+            {profileStatus || "Save profile"}
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Full Name *</Label>

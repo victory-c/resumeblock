@@ -76,7 +76,7 @@ export function CompileClient({ templates, facetIds, jdId }: CompileClientProps)
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            jobDescriptionId: jdId ?? "",
+            ...(jdId ? { jobDescriptionId: jdId } : {}),
             templateId,
             selectedFacetIds: facetIds,
             additionalSections,

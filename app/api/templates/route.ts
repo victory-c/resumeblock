@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { detectPlaceholders } from "@/lib/latex"
-import { enforceLocalRequest } from "@/lib/compile-security"
+import { enforceLocalRequest, hasUnsafeLatexPrimitives, MAX_TEMPLATE_BYTES } from "@/lib/compile-security"
 import fs from "fs"
 import path from "path"
 
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     const file = fd.get("file") as File | null
     if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 })
     if (!file.name.endsWith(".tex")) return NextResponse.json({ error: "File must be a .tex file" }, { status: 400 })
+    if (file.size > MAX_TEMPLATE_BYTES) return NextResponse.json({ error: "Template must be smaller than 512 KB" }, { status: 413 })
     latexSource = await file.text()
   } catch {
     return NextResponse.json({ error: "Invalid form data" }, { status: 400 })
@@ -36,6 +37,9 @@ export async function POST(req: NextRequest) {
 
   if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 })
   if (!latexSource.trim()) return NextResponse.json({ error: "Template file is empty" }, { status: 400 })
+  if (hasUnsafeLatexPrimitives(latexSource)) {
+    return NextResponse.json({ error: "Template contains unsafe file-access primitives" }, { status: 400 })
+  }
 
   // Warn if the template uses a non-standard document class
   const classMatch = latexSource.match(/\\documentclass(?:\[.*?\])?\{([^}]+)\}/)
@@ -50,6 +54,7 @@ export async function POST(req: NextRequest) {
       latexSource,
       placeholderFormat: JSON.stringify(placeholders),
     },
+    select: { id: true, name: true, placeholderFormat: true, previewImagePath: true, createdAt: true, updatedAt: true },
   })
 
   // Write to disk for compilation
@@ -57,9 +62,8 @@ export async function POST(req: NextRequest) {
   fs.mkdirSync(templatesDir, { recursive: true })
   fs.writeFileSync(path.join(templatesDir, `${template.id}.tex`), latexSource, "utf8")
 
-  const { latexSource: _, ...rest } = template
   return NextResponse.json({
-    template: rest,
+    template,
     ...(customClass ? { warning: `Template uses custom document class "${customClass}". It requires the corresponding .cls file to compile. Consider using article-based templates with %%PLACEHOLDER%% markers, or compile via Overleaf.` } : {}),
   }, { status: 201 })
 }

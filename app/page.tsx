@@ -136,7 +136,7 @@ export default async function DashboardPage() {
                 {recentResumes.map((r) => (
                   <div key={r.id} className="rounded-md border p-3 text-sm">
                     <p className="font-medium">
-                      {r.jobDescription.roleTitle} @ {r.jobDescription.companyName}
+                      {r.jobDescription ? `${r.jobDescription.roleTitle} @ ${r.jobDescription.companyName}` : "General resume"}
                     </p>
                     <p className="text-xs text-muted-foreground capitalize">{r.status}</p>
                   </div>

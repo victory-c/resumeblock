@@ -8,10 +8,9 @@ export async function POST(req: NextRequest) {
   const localOnlyError = enforceLocalCompileRequest(req)
   if (localOnlyError) return localOnlyError
 
-  let body: { jobDescriptionId: string; facetIds: string[] }
   const parsedBody = await readLimitedJson(req)
   if (parsedBody.response) return parsedBody.response
-  body = parsedBody.body as typeof body
+  const body = parsedBody.body as { jobDescriptionId: string; facetIds: string[] }
 
   const jd = await prisma.jobDescription.findUnique({ where: { id: body.jobDescriptionId } })
   if (!jd) return NextResponse.json({ error: "JD not found" }, { status: 404 })
